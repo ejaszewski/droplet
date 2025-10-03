@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright 2025 Ethan Jaszewski
 
+fn mod_mul(lhs: u64, rhs: u64, modulus: u64) -> u64 {
+    // This function is quite a bit slower than pure u64 mod
+    // It can probably be optimized by avoiding the umodti3 call that generates remainder
+    let product = u128::from(lhs) * u128::from(rhs);
+    let remainder = product % u128::from(modulus);
+    remainder as u64 // Since modulus is a u64, so will the result
+}
+
 fn mod_pow(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
     if modulus == 1 {
         return 0;
@@ -9,10 +17,10 @@ fn mod_pow(mut base: u64, mut exponent: u64, modulus: u64) -> u64 {
     base = base % modulus;
     while exponent > 0 {
         if exponent % 2 == 1 {
-            result = (result * base) % modulus;
+            result = mod_mul(result, base, modulus);
         }
         exponent >>= 1;
-        base = (base * base) % modulus;
+        base = mod_mul(base, base, modulus);
     }
     result
 }
