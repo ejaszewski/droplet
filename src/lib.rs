@@ -61,7 +61,7 @@ impl Formula {
         sum
     }
     
-    pub fn compute(self, k: u32) -> f64 {
+    pub fn compute(&self, k: u32) -> f64 {
         let mut sum = 0.0;
         for (idx, &a) in self.a.iter().enumerate() {
             if a == 0 {
