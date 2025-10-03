@@ -20,12 +20,22 @@ fn main() {
     let mut float_val = 0.0;
     for _ in 0..iters {
         let float_start = Instant::now();
-        float_val = formula.compute(digit_idx);
+        float_val = formula.compute_float(digit_idx);
         float_time += float_start.elapsed();
     }
+
+    let mut uint_time = Duration::ZERO;
+    let mut uint_val = 0;
+    for _ in 0..iters {
+        let uint_start = Instant::now();
+        uint_val = formula.compute_integer(digit_idx);
+        uint_time += uint_start.elapsed();
+    }
+    
 
     let float_digits = float_val * 48_f64.exp2();
     let hex_digits = float_digits as u64;
     println!("{:08x}", hex_digits);
-    println!("Float: {:?}", float_time / iters);
+    println!("{:08x}", uint_val >> 16);
+    println!("Float: {:?}, UInt: {:?}", float_time / iters, uint_time / iters);
 }

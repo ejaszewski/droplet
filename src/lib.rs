@@ -41,7 +41,7 @@ impl Formula {
         (self.n * i + j).pow(self.s)
     }
 
-    pub fn compute_term(&self, j: u32, k: u32) -> f64 {
+    pub fn compute_term_float(&self, j: u32, k: u32) -> f64 {
         let mut sum = 0.0;
         for i in 0..=k {
             let denominator = self.denominator(i, j).into();
@@ -61,14 +61,14 @@ impl Formula {
         sum
     }
     
-    pub fn compute(&self, k: u32) -> f64 {
+    pub fn compute_float(&self, k: u32) -> f64 {
         let mut sum = 0.0;
         for (idx, &a) in self.a.iter().enumerate() {
             if a == 0 {
                 continue;
             }
             let j: u32 = u32::try_from(idx).unwrap() + 1;
-            let sum_term = (a as f64) * self.compute_term(j, k);
+            let sum_term = (a as f64) * self.compute_term_float(j, k);
             sum = (sum + sum_term).fract();
         }
         if sum < 0.0 {
@@ -76,5 +76,45 @@ impl Formula {
         } else {
             sum
         }
+    }
+
+    pub fn compute_term_integer(&self, j: u32, k: u32) -> u64 {
+        let mut sum: u64 = 0;
+        for i in 0..=k {
+            let denominator = self.denominator(i, j).into();
+            let exponent = (k - i).into();
+            let numerator = mod_pow(self.b.into(), exponent, denominator);
+            let widened_numerator = u128::from(numerator) << 64;
+            let widened_term: u128 = widened_numerator / u128::from(denominator);
+            let sum_term = (widened_term & u128::from(u64::MAX)) as u64;
+            sum = sum.wrapping_add(sum_term);
+        }
+        let num_terms = 64 / self.b.ilog2();
+        for i in (k+1)..=(k+num_terms) {
+            let denominator = self.denominator(i, j);
+            let exponent = i - k;
+            let widened_denominator = u128::from(self.b).saturating_pow(exponent) * u128::from(denominator);
+            let widened_term: u128 = (1 << 64) / widened_denominator;
+            let sum_term = (widened_term & u128::from(u64::MAX)) as u64;
+            sum = sum.wrapping_add(sum_term);
+        }
+        sum
+    }
+    
+    pub fn compute_integer(&self, k: u32) -> u64 {
+        let mut sum: u64 = 0;
+        for (idx, &a) in self.a.iter().enumerate() {
+            if a == 0 {
+                continue;
+            }
+            let j: u32 = u32::try_from(idx).unwrap() + 1;
+            let mut sum_term = a.abs() as u64 * self.compute_term_integer(j, k);
+            if a < 0 {
+                let widened_term = (1 << 64) - u128::from(sum_term);
+                sum_term = (widened_term & u128::from(u64::MAX)) as u64;
+            }
+            sum = sum.wrapping_add(sum_term);
+        }
+        sum
     }
 }
