@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright 2025 Ethan Jaszewski
 
-mod modular;
+use crate::modular::{Reciprocal, mod_pow_primitive};
 
-use modular::mod_pow;
+mod modular;
 
 pub struct Formula {
     b: u32,
@@ -26,7 +26,7 @@ impl Formula {
         for i in 0..=k {
             let denominator = self.denominator(i, j).into();
             let exponent = (k - i).into();
-            let numerator = mod_pow(self.b.into(), exponent, denominator);
+            let numerator = mod_pow_primitive::<u64>(self.b.into(), exponent, denominator);
             let sum_term = numerator as f64 / denominator as f64;
             sum = (sum + sum_term).fract();
         }
@@ -62,11 +62,11 @@ impl Formula {
         let mut sum: u64 = 0;
         for i in 0..=k {
             let denominator = self.denominator(i, j).into();
+            let reciprocal = Reciprocal::new(denominator);
             let exponent = (k - i).into();
-            let numerator = mod_pow(self.b.into(), exponent, denominator);
+            let numerator = reciprocal.mod_pow(self.b.into(), exponent);
             let widened_numerator = u128::from(numerator) << 64;
-            let widened_term: u128 = widened_numerator / u128::from(denominator);
-            let sum_term = (widened_term & u128::from(u64::MAX)) as u64;
+            let sum_term = widened_numerator / &reciprocal;
             sum = sum.wrapping_add(sum_term);
         }
         let num_terms = 64 / self.b.ilog2();
