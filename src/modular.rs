@@ -72,18 +72,22 @@ impl Reciprocal {
         (quotient_hi, remainder)
     }
 
-    pub fn mod_pow(&self, mut base: u64, mut exponent: u64) -> u64 {
-        let mut result = 1 << self.shift;
+    pub fn mod_pow(&self, base: u64, exponent: u64) -> u64 {
+        self.mod_pow_init(1, base, exponent)
+    }
+
+    pub fn mod_pow_init(&self, init: u64, mut base: u64, mut exponent: u64) -> u64 {
+        let mut result = u128::from(init << self.shift);
         while exponent > 0 {
             if exponent % 2 == 1 {
                 let dividend = u128::from(result) * u128::from(base);
-                result = self.divide_impl(dividend).1;
+                result = self.divide_impl(dividend).1.into();
             }
             exponent >>= 1;
             let dividend = u128::from(base) * u128::from(base);
             base = self.divide_impl(dividend).1;
         }
-        result >> self.shift
+        (result >> self.shift) as u64
     }
 }
 
