@@ -77,7 +77,10 @@ impl Reciprocal {
     }
 
     pub fn mod_pow_init(&self, init: u64, mut base: u64, mut exponent: u64) -> u64 {
-        let mut result = u128::from(init << self.shift);
+        let mut result = u128::from(init) << self.shift;
+        if exponent == 0 {
+            result = self.divide_impl(result).1.into();
+        }
         while exponent > 0 {
             if exponent % 2 == 1 {
                 let dividend = u128::from(result) * u128::from(base);
