@@ -52,7 +52,7 @@ impl<const DEGREE: usize> std::fmt::Display for Polynomial<DEGREE> {
                 }
             }
             terms.push(format!(
-                "{} {}x{}",
+                "{} {}n{}",
                 if coeff > 0 { "+" } else { "-" },
                 coeff.abs(),
                 exponent_chars.iter().rev().collect::<String>()

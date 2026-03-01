@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright 2025 Ethan Jaszewski
 
+use core::num;
+
 use crate::{
     modular::{Reciprocal, mod_pow_primitive},
     polynomial::Polynomial,
 };
 
+pub mod formulas;
 mod modular;
 pub mod polynomial;
 
@@ -90,6 +93,38 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
             sum = sum.wrapping_add(term_value);
         }
         sum
+    }
+}
+
+impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let numerator_poly = self.numerators.iter().map(|poly| format!("{}", poly));
+        let denominator_poly = self.denominators.iter().map(|poly| format!("{}", poly));
+
+        let (numerators, (denominators, division)): (Vec<_>, (Vec<_>, Vec<_>)) =
+            numerator_poly
+                .zip(denominator_poly)
+                .map(|(n_string, d_string)| {
+                    let len = n_string.len().max(d_string.len());
+                    let n_padded = format!("{:^width$}", n_string, width = len);
+                    let d_padded = format!("{:^width$}", d_string, width = len);
+                    let divide = "-".repeat(len);
+                    (n_padded, (d_padded, divide))
+                })
+                .unzip();
+        
+        let base_num= if self.base < 0 { format!("(-1)\u{207F}") } else { String::from("1") };
+        let base_denom = format!("{}\u{207F}", self.base.abs());
+        let base_len = base_num.len().max(base_denom.len());
+
+        f.write_fmt(format_args!("{:^width$}/ ", base_num, width = base_len))?;
+        f.write_str(&numerators.join("   "))?;
+        f.write_fmt(format_args!(" \\\n{}| ", "-".repeat(base_len)))?;
+        f.write_str(&division.join(" + "))?;
+        f.write_fmt(format_args!(" |\n{:^width$}\\ ", base_denom, width = base_len))?; //" |\n\\ ")?;
+        f.write_str(&denominators.join("   "))?;
+        f.write_str(" /\n")?;
+        Ok(())
     }
 }
 
