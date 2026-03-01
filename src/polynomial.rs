@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Polynomial<const DEGREE: usize> {
     coefficients: [i32; DEGREE],
 }
@@ -21,6 +22,18 @@ impl<const DEGREE: usize> Polynomial<DEGREE> {
 impl<const N: usize> std::convert::From<[i32; N]> for Polynomial<N> {
     fn from(coefficients: [i32; N]) -> Self {
         Self { coefficients }
+    }
+}
+
+impl<const DEGREE: usize> std::ops::Mul<i32> for Polynomial<DEGREE> {
+    type Output = Self;
+
+    fn mul(self, rhs: i32) -> Self::Output {
+        let mut result = self.clone();
+        for coeff in result.coefficients.iter_mut() {
+            *coeff *= rhs;
+        }
+        result
     }
 }
 
