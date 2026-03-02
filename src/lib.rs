@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright 2025 Ethan Jaszewski
 
-use core::num;
-
 use crate::{
     modular::{Reciprocal, mod_pow_primitive},
     polynomial::Polynomial,
@@ -101,8 +99,7 @@ impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
         let numerator_poly = self.numerators.iter().map(|poly| format!("{}", poly));
         let denominator_poly = self.denominators.iter().map(|poly| format!("{}", poly));
 
-        let (numerators, (denominators, division)): (Vec<_>, (Vec<_>, Vec<_>)) =
-            numerator_poly
+        let (numerators, (denominators, division)): (Vec<_>, (Vec<_>, Vec<_>)) = numerator_poly
                 .zip(denominator_poly)
                 .map(|(n_string, d_string)| {
                     let len = n_string.len().max(d_string.len());
@@ -113,7 +110,11 @@ impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
                 })
                 .unzip();
         
-        let base_num= if self.base < 0 { format!("(-1)\u{207F}") } else { String::from("1") };
+        let base_num = if self.base < 0 {
+            format!("(-1)\u{207F}")
+        } else {
+            String::from("1")
+        };
         let base_denom = format!("{}\u{207F}", self.base.abs());
         let base_len = base_num.len().max(base_denom.len());
 
@@ -121,7 +122,11 @@ impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
         f.write_str(&numerators.join("   "))?;
         f.write_fmt(format_args!(" \\\n{}| ", "-".repeat(base_len)))?;
         f.write_str(&division.join(" + "))?;
-        f.write_fmt(format_args!(" |\n{:^width$}\\ ", base_denom, width = base_len))?; //" |\n\\ ")?;
+        f.write_fmt(format_args!(
+            " |\n{:^width$}\\ ",
+            base_denom,
+            width = base_len
+        ))?; //" |\n\\ ")?;
         f.write_str(&denominators.join("   "))?;
         f.write_str(" /\n")?;
         Ok(())
