@@ -30,7 +30,6 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
     }
 
     pub fn evaluate_term(&self, term: usize, digit: u32) -> u64 {
-        let base_positive = self.base.is_positive() || (digit & 1 == 0);
         let numerator_poly = &self.numerators[term];
         let denominator_poly = &self.denominators[term];
         let mut sum: u64 = 0;
@@ -40,6 +39,7 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
             let numerator = numerator_poly.evaluate(i.into());
 
             // Determine if this term will be positive or negative
+            let base_positive = self.base.is_positive() || (i & 1 == 0);
             let term_positive = numerator.is_positive() && base_positive;
 
             let reciprocal = Reciprocal::new(denominator);
@@ -65,6 +65,7 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
             let numerator = numerator_poly.evaluate(i.into());
 
             // Determine if this term will be positive or negative
+            let base_positive = self.base.is_positive() || (i & 1 == 0);
             let term_positive = numerator.is_positive() && base_positive;
 
             let exponent = i - digit;
@@ -100,16 +101,16 @@ impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
         let denominator_poly = self.denominators.iter().map(|poly| format!("{}", poly));
 
         let (numerators, (denominators, division)): (Vec<_>, (Vec<_>, Vec<_>)) = numerator_poly
-                .zip(denominator_poly)
-                .map(|(n_string, d_string)| {
-                    let len = n_string.len().max(d_string.len());
-                    let n_padded = format!("{:^width$}", n_string, width = len);
-                    let d_padded = format!("{:^width$}", d_string, width = len);
-                    let divide = "-".repeat(len);
-                    (n_padded, (d_padded, divide))
-                })
-                .unzip();
-        
+            .zip(denominator_poly)
+            .map(|(n_string, d_string)| {
+                let len = n_string.len().max(d_string.len());
+                let n_padded = format!("{:^width$}", n_string, width = len);
+                let d_padded = format!("{:^width$}", d_string, width = len);
+                let divide = "-".repeat(len);
+                (n_padded, (d_padded, divide))
+            })
+            .unzip();
+
         let base_num = if self.base < 0 {
             format!("(-1)\u{207F}")
         } else {
