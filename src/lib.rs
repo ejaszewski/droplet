@@ -7,23 +7,26 @@ use crate::{
 };
 
 pub mod formulas;
-mod modular;
+pub mod modular;
 pub mod polynomial;
 
 pub struct PolyFormula<const N_DEGREE: usize, const D_DEGREE: usize> {
-    base: i32,
+    alternating: bool,
+    base_log2: u32,
     numerators: Vec<Polynomial<N_DEGREE>>,
     denominators: Vec<Polynomial<D_DEGREE>>,
 }
 
 impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGREE> {
     pub fn new(
-        base: i32,
+        alternating: bool,
+        base_log2: u32,
         numerators: Vec<Polynomial<N_DEGREE>>,
         denominators: Vec<Polynomial<D_DEGREE>>,
     ) -> Self {
         Self {
-            base,
+            alternating,
+            base_log2,
             numerators,
             denominators,
         }
@@ -39,14 +42,14 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
             let numerator = numerator_poly.evaluate(i.into());
 
             // Determine if this term will be positive or negative
-            let base_positive = self.base.is_positive() || (i & 1 == 0);
+            let base_positive = !self.alternating || (i & 1 == 0);
             let term_positive = numerator.is_positive() && base_positive;
 
             let reciprocal = Reciprocal::new(denominator);
             let exponent = (digit - i).into();
             let numerator = reciprocal.mod_pow_init(
                 numerator.unsigned_abs(),
-                self.base.unsigned_abs().into(),
+                1u64 << self.base_log2,
                 exponent,
             );
             let widened_numerator = u128::from(numerator) << 64;
@@ -58,18 +61,18 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
                 sum.wrapping_sub(sum_term)
             };
         }
-        let num_terms = 64 / self.base.unsigned_abs().ilog2();
+        let num_terms = 64 / self.base_log2;
         for i in (digit + 1)..=(digit + num_terms) {
             // Evaluate numerator and denominator polynomials
             let denominator = denominator_poly.evaluate(i.into()).unsigned_abs();
             let numerator = numerator_poly.evaluate(i.into());
 
             // Determine if this term will be positive or negative
-            let base_positive = self.base.is_positive() || (i & 1 == 0);
+            let base_positive = !self.alternating || (i & 1 == 0);
             let term_positive = numerator.is_positive() && base_positive;
 
             let exponent = i - digit;
-            let widened_denominator = u128::from(self.base.unsigned_abs()).saturating_pow(exponent)
+            let widened_denominator = u128::from(1u64 << self.base_log2).saturating_pow(exponent)
                 * u128::from(denominator);
             let widened_term: u128 =
                 (u128::from(numerator.unsigned_abs()) << 64) / widened_denominator;
@@ -111,12 +114,12 @@ impl<const N: usize, const D: usize> std::fmt::Display for PolyFormula<N, D> {
             })
             .unzip();
 
-        let base_num = if self.base < 0 {
+        let base_num = if self.alternating {
             format!("(-1)\u{207F}")
         } else {
             String::from("1")
         };
-        let base_denom = format!("{}\u{207F}", self.base.abs());
+        let base_denom = format!("{}\u{207F}", (1u64 << self.base_log2));
         let base_len = base_num.len().max(base_denom.len());
 
         f.write_fmt(format_args!("{:^width$}/ ", base_num, width = base_len))?;
