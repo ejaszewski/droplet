@@ -43,7 +43,7 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
 
             // Determine if this term will be positive or negative
             let base_positive = !self.alternating || (i & 1 == 0);
-            let term_positive = numerator.is_positive() && base_positive;
+            let term_positive = !(numerator.is_positive() ^ base_positive);
 
             let reciprocal = Reciprocal::new(denominator);
             let exponent = (digit - i).into();
@@ -69,7 +69,7 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
 
             // Determine if this term will be positive or negative
             let base_positive = !self.alternating || (i & 1 == 0);
-            let term_positive = numerator.is_positive() && base_positive;
+            let term_positive = !(numerator.is_positive() ^ base_positive);
 
             let exponent = i - digit;
             let widened_denominator = u128::from(1u64 << self.base_log2).saturating_pow(exponent)
