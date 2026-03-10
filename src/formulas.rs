@@ -17,7 +17,7 @@ pub fn bailey_borwein_plouffe_pi() -> PolyFormula<1, 2> {
     PolyFormula::new(false, 4, bbp_numerators, bbp_denominators)
 }
 
-pub fn euler_pi() -> PolyFormula<1,2> {
+pub fn euler_pi() -> PolyFormula<1, 2> {
     let euler_numerators = vec![
         Polynomial::new([2]),
         Polynomial::new([2]),
@@ -51,4 +51,16 @@ pub fn bellards_pi() -> PolyFormula<1, 2> {
         Polynomial::new([9, 10]) * 2i32.pow(6),
     ];
     PolyFormula::new(true, 10, bellards_numerators, bellards_denominators)
+}
+
+pub fn zero() -> PolyFormula<1, 2> {
+    let zero_numerators = vec![
+        Polynomial::new([16]),
+        Polynomial::new([-24]),
+        Polynomial::new([-8]),
+        Polynomial::new([-6]),
+        Polynomial::new([1]),
+    ];
+    let zero_denominators = (1..=5).map(|j| Polynomial::new([j, 6])).collect();
+    PolyFormula::new(false, 6, zero_numerators, zero_denominators)
 }
