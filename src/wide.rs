@@ -2,7 +2,7 @@ use crate::modular::Reciprocal;
 
 #[derive(Debug)]
 pub struct Sum<const D: usize> {
-    digits: [u64; D],
+    pub digits: [u64; D],
 }
 
 impl<const D: usize> Sum<D> {

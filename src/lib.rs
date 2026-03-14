@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright 2025 Ethan Jaszewski
 
+use std::thread;
+
 use crate::{
     modular::{Reciprocal, mod_pow_primitive},
-    polynomial::Polynomial, wide::Sum,
+    polynomial::Polynomial,
+    wide::Sum,
 };
 
 pub mod formulas;
@@ -11,6 +14,7 @@ pub mod modular;
 pub mod polynomial;
 pub mod wide;
 
+#[derive(Clone)]
 pub struct PolyFormula<const N_DEGREE: usize, const D_DEGREE: usize> {
     alternating: bool,
     base_log2: u32,
@@ -33,11 +37,17 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
         }
     }
 
-    pub fn evaluate_term<const D: usize>(&self, term: usize, digit: u32) -> Sum<D> {
+    pub fn evaluate_term<const D: usize>(
+        &self,
+        term: usize,
+        digit: u32,
+        offset: u32,
+        stride: usize,
+    ) -> Sum<D> {
         let numerator_poly = &self.numerators[term];
         let denominator_poly = &self.denominators[term];
         let mut sum = Sum::zero();
-        for i in 0..=digit {
+        for i in (offset..=digit).step_by(stride) {
             // Evaluate numerator and denominator polynomials
             let denominator = denominator_poly.evaluate(i.into()).unsigned_abs();
             let numerator = numerator_poly.evaluate(i.into());
@@ -48,11 +58,8 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
 
             let reciprocal = Reciprocal::new(denominator);
             let exponent = (digit - i).into();
-            let numerator = reciprocal.mod_pow_init(
-                numerator.unsigned_abs(),
-                1u64 << self.base_log2,
-                exponent,
-            );
+            let numerator =
+                reciprocal.mod_pow_init(numerator.unsigned_abs(), 1u64 << self.base_log2, exponent);
             let wide_numerator = Sum::from_msd(numerator);
             let sum_term = wide_numerator / &reciprocal;
 
@@ -62,7 +69,12 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
                 sum - sum_term
             };
         }
-        let num_terms = (64 * D) as u32 / self.base_log2;
+        // Main thread will compute the correction terms
+        let num_terms = if offset == 0 {
+            (64 * D) as u32 / self.base_log2
+        } else {
+            0
+        };
         for i in (digit + 1)..=(digit + num_terms) {
             // Evaluate numerator and denominator polynomials
             let denominator = denominator_poly.evaluate(i.into()).unsigned_abs();
@@ -91,10 +103,31 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
         let mut sum = Sum::zero();
         let n_terms = self.numerators.len();
         for term in 0..n_terms {
-            let term_value = self.evaluate_term(term, digit);
+            let term_value = self.evaluate_term(term, digit, 0, 1);
             sum = sum + term_value;
         }
         sum
+    }
+
+    pub fn evaluate_parallel<const D: usize>(&self, digit: u32, threads: usize) -> Sum<D> {
+        let n_terms = self.numerators.len();
+        let mut handles = Vec::with_capacity(threads);
+        for id in 0..threads {
+            let thread_formula = self.clone();
+            let handle = thread::spawn(move || {
+                let mut thread_sum: Sum<D> = Sum::zero();
+                for term in 0..n_terms {
+                    let term_value = thread_formula.evaluate_term(term, digit, id as u32, threads);
+                    thread_sum = thread_sum + term_value;
+                }
+                thread_sum
+            });
+            handles.push(handle);
+        }
+        handles.into_iter().fold(Sum::zero(), |acc, handle| {
+            let thread_sum = handle.join().unwrap();
+            acc + thread_sum
+        })
     }
 }
 
