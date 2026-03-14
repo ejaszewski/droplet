@@ -3,12 +3,13 @@
 
 use crate::{
     modular::{Reciprocal, mod_pow_primitive},
-    polynomial::Polynomial,
+    polynomial::Polynomial, wide::Sum,
 };
 
 pub mod formulas;
 pub mod modular;
 pub mod polynomial;
+pub mod wide;
 
 pub struct PolyFormula<const N_DEGREE: usize, const D_DEGREE: usize> {
     alternating: bool,
@@ -32,10 +33,10 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
         }
     }
 
-    pub fn evaluate_term(&self, term: usize, digit: u32) -> u64 {
+    pub fn evaluate_term<const D: usize>(&self, term: usize, digit: u32) -> Sum<D> {
         let numerator_poly = &self.numerators[term];
         let denominator_poly = &self.denominators[term];
-        let mut sum: u64 = 0;
+        let mut sum = Sum::zero();
         for i in 0..=digit {
             // Evaluate numerator and denominator polynomials
             let denominator = denominator_poly.evaluate(i.into()).unsigned_abs();
@@ -52,16 +53,16 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
                 1u64 << self.base_log2,
                 exponent,
             );
-            let widened_numerator = u128::from(numerator) << 64;
-            let sum_term = widened_numerator / &reciprocal;
+            let wide_numerator = Sum::from_msd(numerator);
+            let sum_term = wide_numerator / &reciprocal;
 
             sum = if term_positive {
-                sum.wrapping_add(sum_term)
+                sum + sum_term
             } else {
-                sum.wrapping_sub(sum_term)
+                sum - sum_term
             };
         }
-        let num_terms = 64 / self.base_log2;
+        let num_terms = (64 * D) as u32 / self.base_log2;
         for i in (digit + 1)..=(digit + num_terms) {
             // Evaluate numerator and denominator polynomials
             let denominator = denominator_poly.evaluate(i.into()).unsigned_abs();
@@ -71,28 +72,27 @@ impl<const N_DEGREE: usize, const D_DEGREE: usize> PolyFormula<N_DEGREE, D_DEGRE
             let base_positive = !self.alternating || (i & 1 == 0);
             let term_positive = !(numerator.is_positive() ^ base_positive);
 
-            let exponent = i - digit;
-            let widened_denominator = u128::from(1u64 << self.base_log2).saturating_pow(exponent)
-                * u128::from(denominator);
-            let widened_term: u128 =
-                (u128::from(numerator.unsigned_abs()) << 64) / widened_denominator;
-            let sum_term = (widened_term & u128::from(u64::MAX)) as u64;
+            let reciprocal = Reciprocal::new(denominator);
+
+            let shift = (i - digit) * self.base_log2;
+            let wide_numerator: Sum<_> = Sum::from_msd(numerator.unsigned_abs()) >> shift;
+            let sum_term = wide_numerator / &reciprocal;
 
             sum = if term_positive {
-                sum.wrapping_add(sum_term)
+                sum + sum_term
             } else {
-                sum.wrapping_sub(sum_term)
+                sum - sum_term
             };
         }
         sum
     }
 
-    pub fn evaluate(&self, digit: u32) -> u64 {
-        let mut sum: u64 = 0;
+    pub fn evaluate<const D: usize>(&self, digit: u32) -> Sum<D> {
+        let mut sum = Sum::zero();
         let n_terms = self.numerators.len();
         for term in 0..n_terms {
             let term_value = self.evaluate_term(term, digit);
-            sum = sum.wrapping_add(term_value);
+            sum = sum + term_value;
         }
         sum
     }

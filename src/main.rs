@@ -3,7 +3,7 @@
 
 use std::time::{Duration, Instant};
 
-use droplet::{Formula, formulas};
+use droplet::{Formula, formulas, wide::Sum};
 
 fn main() {
     let hex_idx = 5_000_000;
@@ -13,7 +13,7 @@ fn main() {
 
     let poly_formula = formulas::bailey_borwein_plouffe_pi();
 
-    let iters = 5;
+    let iters = 1;
 
     let mut float_time = Duration::ZERO;
     let mut float_val = 0.0;
@@ -32,10 +32,10 @@ fn main() {
     }
 
     let mut poly_time = Duration::ZERO;
-    let mut poly_val = 0;
+    let mut poly_val = Sum::zero();
     for _ in 0..iters {
         let uint_start = Instant::now();
-        poly_val = poly_formula.evaluate(digit_idx);
+        poly_val = poly_formula.evaluate::<2>(digit_idx);
         poly_time += uint_start.elapsed();
     }
 
@@ -43,7 +43,7 @@ fn main() {
     let hex_digits = float_digits as u64;
     println!("{:08x}", hex_digits);
     println!("{:08x}", uint_val >> 16);
-    println!("{:08x}", poly_val >> 16);
+    println!("{:016x?}", poly_val);
     println!(
         "Float: {:?}, UInt: {:?}, Poly: {:?}",
         float_time / iters,
