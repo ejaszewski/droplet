@@ -52,6 +52,27 @@ However, this parametrization both limits what formulas can be expressed and pre
 
 The parametrization chosen for **droplet** limits the base to powers of two to more easily support calculating large numbers of digits with one calculation. That said, all currently known BBP-style formulas for pi, as well as the formulas for a large number of other constants are expressed in power-of-two bases already.
 
+## Testing
+
+### Pi Day 2026
+
+On $\pi$ day 2026, I tested `droplet` by computing 314 hex digits of pi at hex digit offset 3,141,592,650. The calculation took 226.70s on my Ryzen 9 3900X processor. The digits are below, and have been verified to be correct.
+
+```
+00: e26d0cc081590def bc8f0088cb533c9f
+02: c988bb418050cbb5 121ec61f9f4e7278
+04: de896e5dda293e65 8ad3a947debfade3
+06: 57afaeb9daaed8f1 fd80010977d2f2f4
+08: e086ad906d9f3cbc 41af114cb890bdb2
+10: e7a36d245345907c f4d4c0c674f1c22e
+12: acb18073356a6fc2 0cbe67d396a7a937
+14: 68bc8f2f59cf9a7d 448f0fe10e028981
+16: e3b35ed7aada9948 ff4e8de652f50e7c
+18: fc3e6723ba73f7d8 3d808ee3f0
+```
+
+This is a reformatted result from the `compute` binary.
+
 ## References
 
 [^1]: https://www.davidhbailey.com/dhbpapers/bbp-formulas.pdf
