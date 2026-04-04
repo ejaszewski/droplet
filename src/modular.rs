@@ -90,6 +90,24 @@ impl Reciprocal {
         }
         (result >> self.shift) as u64
     }
+
+    pub fn mod_pow_init_pow2(&self, init: u64, log2base: u32, mut exponent: u64) -> u64 {
+        let mut result = 1u128 << self.shift;
+        exponent = exponent << exponent.leading_zeros();
+        while exponent > 0 {
+            let dividend = u128::from(result) * u128::from(result >> self.shift);
+            result = self.divide_impl(dividend).1.into();
+            exponent = exponent.rotate_left(1);
+            if exponent & 1 > 0 {
+                let dividend = u128::from(result) << log2base;
+                result = self.divide_impl(dividend).1.into();
+            }
+            exponent &= !1;
+        }
+        let dividend = u128::from(result) * u128::from(init);
+        result = self.divide_impl(dividend).1.into();
+        (result >> self.shift) as u64
+    }
 }
 
 impl std::ops::Div<&Reciprocal> for u64 {
